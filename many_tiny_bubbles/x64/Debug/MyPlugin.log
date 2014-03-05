@@ -1,0 +1,9 @@
+﻿Build started 3/5/2014 6:38:42 PM.
+     1>Project "C:\Users\Danny\Desktop\Bubble creator\MyPlugin.vcxproj" on node 2 (clean target(s)).
+     1>_PrepareForClean:
+         Deleting file "x64\Debug\ManyTinyBubble.lastbuildstate".
+     1>Done Building Project "C:\Users\Danny\Desktop\Bubble creator\MyPlugin.vcxproj" (clean target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:00.06

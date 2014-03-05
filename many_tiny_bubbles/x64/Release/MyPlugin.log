@@ -1,0 +1,37 @@
+﻿Build started 1/18/2012 4:51:30 PM.
+     1>Project "D:\WinDocs\UPenn\Courses\CIS660\2012\MayaPluginHw2\MyPlugin.vcxproj" on node 3 (rebuild target(s)).
+     1>_PrepareForClean:
+         Deleting file "x64\Release\LSystemMaya.lastbuildstate".
+       InitializeBuildStatus:
+         Creating "x64\Release\LSystemMaya.unsuccessfulbuild" because "AlwaysCreate" was specified.
+       ClCompile:
+         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64\CL.exe /c /I. /I"C:\Program Files\Autodesk\Maya2012\include" /Zi /nologo /W3 /WX- /O2 /Ob1 /D NDEBUG /D WIN32 /D _WINDOWS /D NT_PLUGIN /D REQUIRE_IOSTREAM /D _VC80_UPGRADE=0x0710 /D _WINDLL /GF /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo".\Release/" /Fd".\Release/MyPlugin.pdb" /Gd /TP /wd4244 /wd4305 /wd4018 /errorReport:prompt cylinder.cpp LSystem.cpp LSystemCmd.cpp PluginMain.cpp vec.cpp /GR /GS /EHac 
+     1>cl : Command line warning D9025: overriding '/EHs' with '/EHa'
+         cylinder.cpp
+         LSystem.cpp
+     1>LSystem.cpp(52): warning C4267: 'initializing' : conversion from 'size_t' to 'unsigned int', possible loss of data
+         LSystemCmd.cpp
+         PluginMain.cpp
+         vec.cpp
+         Generating Code...
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\Microsoft.CppBuild.targets(990,5): warning MSB8012: TargetPath(D:\WinDocs\UPenn\Courses\CIS660\2012\MayaPluginHw2\x64\Release\LSystemMaya.dll) does not match the Linker's OutputFile property value (D:\WinDocs\UPenn\Courses\CIS660\2012\MayaPluginHw2\LSystem.mll). This may cause your project to build incorrectly. To correct this, please make sure that $(OutDir), $(TargetName) and $(TargetExt) property values match the value specified in %(Link.OutputFile).
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\Microsoft.CppBuild.targets(991,5): warning MSB8012: TargetExt(.dll) does not match the Linker's OutputFile property value (.mll). This may cause your project to build incorrectly. To correct this, please make sure that $(OutDir), $(TargetName) and $(TargetExt) property values match the value specified in %(Link.OutputFile).
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\Microsoft.CppBuild.targets(992,5): warning MSB8012: TargetName(LSystemMaya) does not match the Linker's OutputFile property value (LSystem). This may cause your project to build incorrectly. To correct this, please make sure that $(OutDir), $(TargetName) and $(TargetExt) property values match the value specified in %(Link.OutputFile).
+       Link:
+         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:".\LSystem.mll" /INCREMENTAL:NO /NOLOGO /LIBPATH:"C:\Program Files\Autodesk\Maya2012\lib" odbc32.lib odbccp32.lib OpenMaya.lib OpenMayaRender.lib Foundation.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"x64\Release\LSystemMaya.dll.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /PDB:".\Release/MyPlugin.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:".\Release/MyPlugin.lib" /MACHINE:X64 /DLL .\Release/cylinder.obj
+         .\Release/LSystem.obj
+         .\Release/LSystemCmd.obj
+         .\Release/PluginMain.obj
+         .\Release/vec.obj /export:initializePlugin /export:uninitializePlugin  
+            Creating library .\Release/MyPlugin.lib and object .\Release/MyPlugin.exp
+         MyPlugin.vcxproj -> D:\WinDocs\UPenn\Courses\CIS660\2012\MayaPluginHw2\x64\Release\LSystemMaya.dll
+       Manifest:
+         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:".\LSystem.mll;#2" /manifest x64\Release\LSystemMaya.dll.intermediate.manifest
+       FinalizeBuildStatus:
+         Deleting file "x64\Release\LSystemMaya.unsuccessfulbuild".
+         Touching "x64\Release\LSystemMaya.lastbuildstate".
+     1>Done Building Project "D:\WinDocs\UPenn\Courses\CIS660\2012\MayaPluginHw2\MyPlugin.vcxproj" (rebuild target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:03.63

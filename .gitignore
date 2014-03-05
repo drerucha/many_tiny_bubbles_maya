@@ -1,0 +1,10 @@
+# project directories to ignore when committing
+
+many_tiny_bubbles/Debug/
+many_tiny_bubbles/Release/
+many_tiny_bubbles/ipch/
+
+
+# file types to ignore when committing
+
+*.sdf

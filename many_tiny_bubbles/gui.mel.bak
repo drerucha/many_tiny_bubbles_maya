@@ -1,0 +1,104 @@
+global proc createMenu()
+{
+	menu -label "LSystem" -parent MayaWindow myMenu;
+  menuItem -label "Call LSystem Command" -command "createWindow()";
+  menuItem -label "Create LSystem Node" -command "createNode()";
+}
+
+global proc readFile()
+{
+  string $fileName=`fileDialog -mode 0 -directoryMask "*.txt"`;
+  $fileId=`fopen $fileName "r"`;
+  string $fileData=`fread $fileId $fileData`;
+  scrollField -edit -text $fileData myScrollField;
+}
+
+global proc createPlant()
+{
+  int $iteration=`intSliderGrp -q -v iterationSlider`;
+  float $stepSize=`floatSliderGrp -q -v stepSizeSlider`;
+  float $angle=`floatSliderGrp -q -v angleSlider`;
+  string $grammar=`scrollField -q -tx myScrollField`;
+    
+  LSystemCmd -i $iteration -s $stepSize -a $angle -g $grammar;
+}
+
+global proc createWindow()
+{
+	int $developing=true;
+	if($developing&&`window -exists LSystemWindow`)
+  	deleteUI LSystemWindow;
+	if(!`window -exists LSystemWindow`)
+	{
+		if (`windowPref -exists LSystemWindow`) 
+			windowPref -remove LSystemWindow;
+	    window -title "Call LSystem Command" -width 600 -height 480 LSystemWindow;
+	    
+	    columnLayout -adjustableColumn true;
+	          
+	    rowLayout -numberOfColumns 2 -columnAttach 2 "left" 430;
+	    text -label "Browse for grammar files";          
+	    button -label "Browse.." -command "readFile()";          
+	    setParent ..;
+	    scrollField -editable true -height 300 -editable false myScrollField;
+	    frameLayout -label "LSystem Parameters" -font boldLabelFont -borderStyle "etchedIn" -collapsable true;
+	             
+	    intSliderGrp -label "Iterations" -value 5 -field true -minValue 1 -maxValue 10 iterationSlider;
+	    floatSliderGrp -label "Default step size" -value 1.0 -field true -minValue 0.1 -maxValue 10.0 stepSizeSlider;
+	    floatSliderGrp -label "Default angle" -value 90.0 -field true -minValue 0.0 -maxValue 360.0 angleSlider;
+	    setParent ..;
+	    rowLayout -numberOfColumns 2 -columnAttach 1 "right" 550;
+	    button -label "Create" -command "createPlant()";
+	    button -label "Cancel" -command "deleteUI LSystemWindow";       
+	}
+    
+  showWindow LSystemWindow;
+}
+
+
+global proc createNode()
+{
+createNode transform -n LSystem1;
+createNode mesh -n LSystemShape1 -p LSystem1;
+sets -add initialShadingGroup LSystemShape1;
+createNode LSystemNode -n LSystemNode1;
+connectAttr time1.outTime LSystemNode1.time;
+connectAttr LSystemNode1.outputMesh LSystemShape1.inMesh;
+}
+
+createMenu();
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+createWindow();
+
+
+
+
+
+
+
+
+createNode transform -n LSystem1;
+createNode mesh -n LSystemShape1 -p LSystem1;
+sets -add initialShadingGroup LSystemShape1;
+createNode LSystemNode -n LSystemNode1
+connectAttr time1.outTime LSystemNode1.time;
+connectAttr LSystemNode1.outputMesh LSystemShape1.inMesh;
