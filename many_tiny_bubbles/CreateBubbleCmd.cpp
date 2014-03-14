@@ -94,10 +94,10 @@ MStatus CreateBubbleCmd::doIt( const MArgList& args )
 	if(argData.isFlagSet(containerResXFlag))
 		argData.getFlagArgument(containerResXFlag, 0, containerResolutionX);
 
-	if(argData.isFlagSet(containerResXFlag))
+	if(argData.isFlagSet(containerResYFlag))
 		argData.getFlagArgument(containerResYFlag, 0, containerResolutionY);
 
-	if(argData.isFlagSet(containerResXFlag))
+	if(argData.isFlagSet(containerResZFlag))
 		argData.getFlagArgument(containerResZFlag, 0, containerResolutionZ);
 
 	if(argData.isFlagSet(bubbleNumFlag))
@@ -159,7 +159,7 @@ MStatus CreateBubbleCmd::doIt( const MArgList& args )
 	container += tmp + " ";
 	ss.clear();
 
-	ss<<containerSizeY;
+	ss<<containerSizeZ;
 	ss>>tmp;
 	container += tmp + " ";
 	ss.clear();
@@ -187,23 +187,33 @@ MStatus CreateBubbleCmd::doIt( const MArgList& args )
 
 	MGlobal::executeCommand("create3DFluid " + strContainer);//the first three parameters are for resolution, the last three are for size
 	MGlobal::executeCommand("move -r " + strContainerTran);
+
+	//MGlobal::executeCommand("setAttr fluidShape1.surfaceRender 1");//暫時先不用
+	//MGlobal::executeCommand("setAttr fluidShape1.softSurface 1");
+	//MGlobal::executeCommand("setAttr fluidShape1.densityBuoyancy -1.5");
+	//MGlobal::executeCommand("setAttr fluidShape1.surfaceThreshold 0.133734");
+
+
+	//MGlobal::executeCommand("fluidEmitter -pos 0 0 0 -type omni -der 1 -her 1 -fer 1 -fdr 2 -r 100.0 -cye none -cyi 1 -mxd 1 -mnd 0");
+	//MGlobal::executeCommand("emitter -pos 0 0 0 -type omni -r 100 -sro 0 -nuv 0 -cye none -cyi 1 -spd 1 -srn 0 -nsp 1 -tsp 0 -mxd 0 -mnd 0 -dx 1 -dy 0 -dz 0 -sp 0");
+	//MGlobal::executeCommand("particle");
+	//MGlobal::executeCommand("connectDynamic -em emitter1 particle1");
+	//MGlobal::executeCommand("setAttr emitter1.rate 1");//bubble count
 	
-	MGlobal::executeCommand("setAttr fluidShape1.surfaceRender 1");
-	MGlobal::executeCommand("setAttr fluidShape1.softSurface 1");
-	MGlobal::executeCommand("setAttr fluidShape1.densityBuoyancy -1.5");
-	MGlobal::executeCommand("setAttr fluidShape1.surfaceThreshold 0.133734");
-	MGlobal::executeCommand("fluidEmitter -pos 0 0 0 -type omni -der 1 -her 1 -fer 1 -fdr 2 -r 100.0 -cye none -cyi 1 -mxd 1 -mnd 0");
-	MGlobal::executeCommand("emitter -pos 0 0 0 -type omni -r 100 -sro 0 -nuv 0 -cye none -cyi 1 -spd 1 -srn 0 -nsp 1 -tsp 0 -mxd 0 -mnd 0 -dx 1 -dy 0 -dz 0 -sp 0");
-	MGlobal::executeCommand("changeSelectMode -component");
-	MGlobal::executeCommand("hilite particle1") ;
-	MGlobal::executeCommand("select -r particle1.pt[31]") ;
-	MGlobal::executeCommand("particle -e -or 31 -at position -vv 1 -0.633177 -1.849741 particleShape1");
+	//MGlobal::executeCommand("playbackOptions -ast 1 -aet 100");//Start and end of the animation:
+	MGlobal::executeCommand("playbackOptions -min 1 -max 20");//Start and end of playback time range:
+
+	//MGlobal::executeCommand("currentTime 500");
+	//int a = MGlobal::executeCommand("particle -count -q particle1");
+	//int b = 0;
+	//MGlobal::executeCommand("changeSelectMode -component");
+	//MGlobal::executeCommand("hilite particle1") ;
+	//MGlobal::executeCommand("select -r particle1.pt[1]") ;
+	//MGlobal::executeCommand("particle -e -or 1 -at position -vv 1 -0.633177 -1.849741 particleShape1");
+	//MGlobal::executeCommand("particle -p 1.40844 0 -1.014435 -p 1.301524 0 1.368541 -c 1");
 
 
-	//MGlobal::executeCommand("curve -d 1 -p "+ strStartVec +" -p "+ strEndVec +" -k 0 -k 1 -name curve1");
-	//MGlobal::executeCommand("select -r nurbsCircle1 curve1");
-	//MGlobal::executeCommand("extrude -ch true -rn false -po 1 -et 2 -ucp 1 -fpt 1 -upn 1 -rotation 0 -scale 1 -rsp 1 nurbsCircle1 curve1");
-	//MGlobal::executeCommand("delete curve1");
+	//MFnParticleSystem
 
 
 

@@ -17,7 +17,8 @@
 #include <list>
 
 #include "CreateBubbleCmd.h"
-#include "LSystemNode.h"
+#include "CreateBubbleNode.h"
+#include "RenderSequentialImagesCmd.h"
 
 MString mllPath;
 
@@ -33,7 +34,13 @@ MStatus initializePlugin( MObject obj )
         return status;
     }
 
-	status = plugin.registerNode("LSystemNode", LSystemNode::id,LSystemNode::creator, LSystemNode::initialize);
+    status = plugin.registerCommand( "RenderSequentialImagesCmd", RenderSequentialImagesCmd::creator );
+    if (!status) {
+        status.perror("registerCommand");
+        return status;
+    }
+	// Register Node
+	status = plugin.registerNode("CreateBubbleNode", CreateBubbleNode::id,CreateBubbleNode::creator, CreateBubbleNode::initialize);
 			if (!status) {
 		status.perror("registerNode");
 		return status;
@@ -58,7 +65,13 @@ MStatus uninitializePlugin( MObject obj)
 	    return status;
     }
 	
-	status = plugin.deregisterNode(LSystemNode::id);
+	status = plugin.deregisterCommand( "RenderSequentialImagesCmd" );
+    if (!status) {
+	    status.perror("deregisterCommand");
+	    return status;
+    }
+
+	status = plugin.deregisterNode(CreateBubbleNode::id);
 	if (!status) {
 		status.perror("deregisterNode");
 		return status;
