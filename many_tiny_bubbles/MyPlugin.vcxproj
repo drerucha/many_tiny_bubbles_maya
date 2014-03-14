@@ -381,19 +381,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CreateBubbleNode.cpp" />
     <ClCompile Include="cylinder.cpp" />
     <ClCompile Include="LSystem.cpp" />
     <ClCompile Include="CreateBubbleCmd.cpp" />
-    <ClCompile Include="LSystemNode.cpp" />
     <ClCompile Include="PluginMain.cpp" />
+    <ClCompile Include="RenderSequentialImagesCmd.cpp" />
     <ClCompile Include="vec.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="createbubblenode.h" />
     <ClInclude Include="cylinder.h" />
     <ClInclude Include="LSystem.h" />
     <ClInclude Include="CreateBubbleCmd.h" />
-    <ClInclude Include="lsystemnode.h" />
     <ClInclude Include="matrix.h" />
+    <ClInclude Include="rendersequentialimagescmd.h" />
     <ClInclude Include="vec.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

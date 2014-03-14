@@ -21,10 +21,11 @@
     <ClCompile Include="vec.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="LSystemNode.cpp" />
     <ClCompile Include="CreateBubbleCmd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CreateBubbleNode.cpp" />
+    <ClCompile Include="RenderSequentialImagesCmd.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cylinder.h">
@@ -39,9 +40,10 @@
     <ClInclude Include="vec.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="lsystemnode.h" />
     <ClInclude Include="CreateBubbleCmd.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="createbubblenode.h" />
+    <ClInclude Include="rendersequentialimagescmd.h" />
   </ItemGroup>
 </Project>
