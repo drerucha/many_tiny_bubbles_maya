@@ -95,6 +95,9 @@ MStatus RenderSequentialImagesCmd::doIt( const MArgList& args )
 		ss>>frameIndex;
 		ss.clear();
 
+		//**should add file path editor**//
+		//TODO
+
 		string saveRender = (string)"renderWindowSaveImageCallback " + '\"' + (string)"renderView" + '\"' + " " + '\"' + (string)"D:/Course_Advanced Animation/Authuring tool/Final Project/test" + frameCount + '\"' + " "+ '\"'+ (string)"JPEG"+ '\"';
 		char* saveRenderChar=(char *)saveRender.c_str();
 		MString strSaveRender = saveRenderChar;
