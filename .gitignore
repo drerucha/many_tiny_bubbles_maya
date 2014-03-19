@@ -4,7 +4,13 @@ many_tiny_bubbles/Debug/
 many_tiny_bubbles/Release/
 many_tiny_bubbles/ipch/
 
+many_tiny_bubbles/.Debug/
+many_tiny_bubbles/bin/
+many_tiny_bubbles/x64/
+
 
 # file types to ignore when committing
 
 *.sdf
+*.suo
+*.user
