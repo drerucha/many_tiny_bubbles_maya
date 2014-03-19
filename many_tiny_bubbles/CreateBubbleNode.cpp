@@ -185,7 +185,7 @@ MStatus CreateBubbleNode::compute(const MPlug& plug, MDataBlock& data)
 		MDataHandle scatterCoefData = data.inputValue(scatterCoef, &returnStatus );
 		double scatterCoefs = scatterCoefData.asDouble();
 		MDataHandle bubbleSizeData = data.inputValue(bubbleSize, &returnStatus );
-		double bubbleSizes = bubbleSizeData.asDouble();
+		double bubbleSizes = 0.1;//bubbleSizeData.asDouble();
 
 		double containSizeX,containSizeY,containSizeZ;
 		double resolutionX, resolutionY, resolutionZ;
