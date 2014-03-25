@@ -30,6 +30,8 @@
 #include <maya/MDynamicsUtil.h>
 #include <maya/MGlobal.h>
 #include <sstream>
+#include "mac_grid.h"
+
 
 extern MString mllPath;
 
@@ -237,6 +239,26 @@ MStatus CreateBubbleNode::createBubble(const MTime &time, MObject& outData, doub
 		MGlobal::executeCommand("doDelete");
 	}
 
+
+	double dt = 0.2;//0.1;
+
+    // Step0: Gather user forces
+	mGrid.generateBubbles();
+	mGrid.updateSources();
+
+	// Step1: Calculate new velocities
+	mGrid.advectVelocity(dt);
+	mGrid.addExternalForces(dt);
+	mGrid.project(dt);
+
+	// Step2: Calculate new temperature
+	mGrid.advectTemperature(dt);
+
+	// Step3: Calculate new density 
+	mGrid.advectDensity(dt);
+	mGrid.advectBubbles(dt);
+
+
 	int pointNum;
 	float* ptPos = getParticlePositions(frame, viscosity, density, scatterFreq, scatterCoef, &pointNum);
 
@@ -322,17 +344,27 @@ MStatus CreateBubbleNode::createBubble(const MTime &time, MObject& outData, doub
 
 float* CreateBubbleNode::getParticlePositions(int frame, double viscosity, double density, double scatterFreq, double scatterCoef, int* ptNum)
 {
-	float* pos = new float[frame * 3];
 
-
-	for(int i = 0 ; i < frame ; ++i)
+	int size;
+	float* postest =  mGrid.getBubblePosition(&size);
+	float* pos = new float[size * 3];
+	for(int i = 0 ; i < size ; ++i)
 	{
-		pos[i * 3] = viscosity * (frame / 1000 + 1) * cos(2 * 3.1415926 / (float)frame * i);
-		pos[i * 3 + 1] = 0;
-		pos[i * 3 + 2] = viscosity * (frame / 1000 + 1) * sin(2 * 3.1415926 / (float)frame * i);
+		pos[i * 3]     = postest[i * 3];
+		pos[i * 3 + 1] = postest[i * 3 + 1];
+		pos[i * 3 + 2] = postest[i * 3 + 2];
 	}
+	*ptNum = size;
 
-	*ptNum = frame;
+	//float* pos = new float[frame * 3];
+	//for(int i = 0 ; i < frame ; ++i)
+	//{
+	//	pos[i * 3] = viscosity * (frame / 1000 + 1) * cos(2 * 3.1415926 / (float)frame * i);
+	//	pos[i * 3 + 1] = 0;
+	//	pos[i * 3 + 2] = viscosity * (frame / 1000 + 1) * sin(2 * 3.1415926 / (float)frame * i);
+	//}
+
+	//*ptNum = frame;
 	return pos;
 }
 
