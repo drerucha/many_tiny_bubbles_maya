@@ -6,7 +6,7 @@ many_tiny_bubbles/ipch/
 
 many_tiny_bubbles/.Debug/
 many_tiny_bubbles/bin/
-many_tiny_bubbles/x64/
+many_tiny_bubbles/x64/Debug/
 
 
 # file types to ignore when committing
@@ -14,3 +14,4 @@ many_tiny_bubbles/x64/
 *.sdf
 *.suo
 *.user
+*.tlog
