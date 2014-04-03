@@ -20,6 +20,7 @@
 #include "cylinder.h"
 #include <string>
 #include <Windows.h>
+#include "mac_grid.h"
 class CreateBubbleNode : public MPxNode
 {
 public:
@@ -44,11 +45,12 @@ public:
 	static MObject bubbleSize;
 	static MTypeId	id;
 
+
 	//string WstringToString(const wstring);
 protected:
 	MStatus	computeMesh(const MTime& time, const MPlug& plug, MDataBlock& block );
 	MStatus	createBubble(const MTime& time, MObject& outData, double &containerSizeX, double &containerSizeY, double &containerSizeZ, double &viscosity, 
 						 double &density, double &scatterFreq, double &scatterCoef, double &bubbleSize, const MPlug& plug, MDataBlock& block );
 	float* getParticlePositions(int frame, double viscosity, double density, double scatterFreq, double scatterCoef, int* ptNum);
-
+	MACGrid mGrid;
 };
