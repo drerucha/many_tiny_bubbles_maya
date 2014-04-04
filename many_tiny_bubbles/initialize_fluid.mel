@@ -1,0 +1,191 @@
+////////////////////////////////////////////////////
+// define global variables
+////////////////////////////////////////////////////
+
+// fluid container resolution: number of fluid grid cells
+// higher resolution increases simulation quality
+int $BASE_RESOLUTION = 20;
+
+// fluid container dimension: object space size
+float $DIM_X = 10.0;
+float $DIM_Y = 10.0;
+float $DIM_Z = 10.0;
+
+// percentage full [0, 1]
+float $FILL_PERCENTAGE = 0.8;
+
+// initial fluid attributes
+float $VISCOSITY = 0.02;
+float $DENSITY_TENSION = 0.1;
+float $TENSION_FORCE = 0.01;
+float $DENSITY_PRESSURE = 1.0;
+float $DENSITY_PRESSURE_THRESHOLD = 1.0;
+float $BUOYANCY = -1.0;
+float $SURFACE_THRESHOLD = 0.15;
+
+// initial fluid color
+float $COLOR_R = 0.65;
+float $COLOR_G = 0.93;
+float $COLOR_B = 1.0;
+
+// initial fluid attributes to increase simulation quality (optional)
+int $HIGH_DETAIL_SOLVE = false;		// set true for higher quality, defaults to false
+int $NUM_SUBSTEPS = 1;				// set greater than 1 for higher quality, defaults to 1
+int $SOLVER_QUALITY = 20;			// set 40-80 for higher quality, defaults to 20
+int $MESH_SMOOTHING_ITERATIONS = 0;	// set greater than 0 for higher quality, defaults to 0
+
+
+////////////////////////////////////////////////////
+// create container
+////////////////////////////////////////////////////
+
+string $fluid_container = `create3DFluid $BASE_RESOLUTION $BASE_RESOLUTION $BASE_RESOLUTION $DIM_X $DIM_Y $DIM_Z`;
+
+
+////////////////////////////////////////////////////
+// fill container
+////////////////////////////////////////////////////
+
+int $num_filled_cells = $BASE_RESOLUTION * $BASE_RESOLUTION * $BASE_RESOLUTION * $FILL_PERCENTAGE;
+int $filled_cell_counter = 0;
+int $continue_filling = true;
+
+int $index_x, $index_y, $index_z;
+for ( $index_y = 0; $index_y < $BASE_RESOLUTION && $continue_filling; ++$index_y ) {
+	for ( $index_z = 0; $index_z < $BASE_RESOLUTION && $continue_filling; ++$index_z ) {
+		for ( $index_x = 0; $index_x < $BASE_RESOLUTION && $continue_filling; ++$index_x, ++$filled_cell_counter ) {
+			if ( $filled_cell_counter < $num_filled_cells ) {
+				setFluidAttr -at "density"
+							 -fv 1.0
+							 -xIndex $index_x
+							 -yIndex $index_y
+							 -zIndex $index_z
+							 $fluid_container;
+			}
+			else {
+				$continue_filling = false;
+			}
+		}
+	}
+}
+
+
+////////////////////////////////////////////////////
+// set initial fluid attributes
+////////////////////////////////////////////////////
+
+string $cmd;
+
+// Dynamic Simulation -> Viscosity: 0.02
+$cmd = $fluid_container + ".viscosity";
+setAttr $cmd $VISCOSITY;
+
+// Dynamic Simulation -> Forward Advection: On
+$cmd = $fluid_container + ".forwardAdvection";
+setAttr $cmd 1;
+
+// Liquids -> Enable Liquid Simulation: On
+$cmd = $fluid_container + ".enableLiquidSimulation";
+setAttr $cmd 1;
+
+// Liquids -> Liquid Method: Liquid and Air
+$cmd = $fluid_container + ".liquidMethod";
+setAttr $cmd 1;
+
+// Liquids -> Density Tension: 0.1
+$cmd = $fluid_container + ".densityTension";
+setAttr $cmd $DENSITY_TENSION;
+
+// Liquids -> Tension Force: 0.01
+$cmd = $fluid_container + ".tensionForce";
+setAttr $cmd $TENSION_FORCE;
+
+// Liquids -> Density Pressure: 1
+$cmd = $fluid_container + ".densityPressure";
+setAttr $cmd $DENSITY_PRESSURE;
+
+// Liquids -> Density Pressure Threshold: 1
+$cmd = $fluid_container + ".densityPressureThreshold";
+setAttr $cmd $DENSITY_PRESSURE_THRESHOLD;
+
+// Contents Details -> Density -> Buoyancy: -1
+$cmd = $fluid_container + ".densityBuoyancy";
+setAttr $cmd $BUOYANCY;
+
+// Container Properties -> Boundary X: Both Sides
+$cmd = $fluid_container + ".boundaryX";
+setAttr $cmd 1;
+
+// Container Properties -> Boundary Y: -Y
+$cmd = $fluid_container + ".boundaryY";
+setAttr $cmd 2;
+
+// Container Properties -> Boundary Z: Both Sides
+$cmd = $fluid_container + ".boundaryZ";
+setAttr $cmd 1;
+
+// Auto Resize -> Auto Resize: On
+$cmd = $fluid_container + ".autoResize";
+setAttr $cmd 1;
+
+// Auto Resize -> Resize Closed Boundaries: Off
+$cmd = $fluid_container + ".resizeClosedBoundaries";
+setAttr $cmd 0;
+
+// Auto Resize -> Auto Resize Threshold: 0.2
+$cmd = $fluid_container + ".autoResizeThreshold";
+setAttr $cmd 0.2;
+
+// Auto Resize -> Auto Resize Margin: 1 or greater
+$cmd = $fluid_container + ".autoResizeMargin";
+setAttr $cmd 1;
+
+// Surface -> Surface Render: On
+$cmd = $fluid_container + ".surfaceRender";
+setAttr $cmd 1;
+
+// Surface -> Surface Threshold: 0.15
+$cmd = $fluid_container + ".surfaceThreshold";
+setAttr $cmd $SURFACE_THRESHOLD;
+
+// Output Mesh -> Use Gradient Normals: On
+$cmd = $fluid_container + ".useGradientNormals";
+setAttr $cmd 1;
+
+// Shading -> Color -> Selected Color
+$cmd = $fluid_container + ".color[0].color_Color";
+setAttr $cmd -type double3 $COLOR_R $COLOR_G $COLOR_B;
+
+
+////////////////////////////////////////////////////
+// notes on attributes to consider setting to increase quality of fluid simulation
+// will significantly increase computation time
+////////////////////////////////////////////////////
+
+// Dynamic Simulation -> High Detail Solve: All Grids
+if ( $HIGH_DETAIL_SOLVE ) {
+	$cmd = $fluid_container + ".highDetailSolve";
+	setAttr $cmd 3;
+}
+
+// Dynamic Simulation -> Substeps: Greater than 1
+$cmd = $fluid_container + ".substeps";
+setAttr $cmd $NUM_SUBSTEPS;
+
+// Dynamic Simulation -> Solver Quality: 40 to 80
+$cmd = $fluid_container + ".solverQuality";
+setAttr $cmd $SOLVER_QUALITY;
+
+// Output Mesh -> Mesh Smoothing Iterations: Greater than 0
+$cmd = $fluid_container + ".meshSmoothingIterations";
+setAttr $cmd $MESH_SMOOTHING_ITERATIONS;
+
+
+////////////////////////////////////////////////////
+// some procedures
+////////////////////////////////////////////////////
+
+global proc jgPrint( string $print )
+{
+	print( $print + "\n" );
+}
