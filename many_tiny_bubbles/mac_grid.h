@@ -31,8 +31,7 @@ public:
 	void project(double dt);
 	void advectTemperature(double dt);
 	void advectDensity(double dt);
-	void advectBubbles(double dt);
-	void generateBubbles();
+
 
 protected:
 
@@ -44,6 +43,7 @@ protected:
 	void computeVorticityConfinement(double dt);
 	void computeViscosityForce(double dt);
 	vec3 getOmegaVector(int i, int j, int k);
+
 
 	// Rendering:
 	struct Cube { vec3 pos; vec4 color; double dist; };
@@ -92,12 +92,24 @@ protected:
 	GridData mConfForceX;
 	GridData mConfForceY;
 	GridData mConfForceZ;
+	GridData mFractionField;
+	GridData mScatterOdd;
 
 	// The A matrix:
 	GridDataMatrix AMatrix;
 
-	std::vector<vec3> bubblePos;
+
+	typedef std::vector<vec3> bubblePos;
+	std::vector<bubblePos> bubblePosList;
+
+	typedef std::vector<vec3> bubbleVel;
+	std::vector<bubbleVel> bubbleVelList;
+
+	std::vector<double> bubbleRadiusList;
+
+	std::vector<vec3> sourcePos;//new
 	//Bubbles bubbleData;
+	int containerSize[3];
 
 public:
 
@@ -107,8 +119,24 @@ public:
 	
 	// Saves smoke in CIS 460 volumetric format:
 	void saveSmoke(const char* fileName);
-	float* getBubblePosition(int* size);
 
+
+	void advectBubbles(double dt);
+	void generateBubbles();
+	void computeScatterOdd();
+	void computeFractionField();
+	float* getBubblePosition(int index, int* size);
+	void setViscosity(double viscos);
+	void setScatterFreq(double freq);
+	void setScatterCoef(double coef);
+	void setDensity(double density);
+	void setBubbleBreakFreq(double freq);
+	void setSourcePos(std::vector<vec3> pos);
+	void doSimulation(int frame);
+	void setTimeStep(double dt);
+	void setBubbleRadius(double radiusMin, double radiusMax, int segment);
+	int getBubbleRadiusCount();
+	double getBubbleRadius(int index);
 
 };
 

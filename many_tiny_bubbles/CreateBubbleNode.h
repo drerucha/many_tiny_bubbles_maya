@@ -51,6 +51,6 @@ protected:
 	MStatus	computeMesh(const MTime& time, const MPlug& plug, MDataBlock& block );
 	MStatus	createBubble(const MTime& time, MObject& outData, double &containerSizeX, double &containerSizeY, double &containerSizeZ, double &viscosity, 
 						 double &density, double &scatterFreq, double &scatterCoef, double &bubbleSize, const MPlug& plug, MDataBlock& block );
-	float* getParticlePositions(int frame, double viscosity, double density, double scatterFreq, double scatterCoef, int* ptNum);
-	MACGrid mGrid;
+	float* getParticlePositions(int frame, int radiusIndex, double containerSizeX, double containerSizeY, double containerSizeZ, double viscosity, double density, double scatterFreq, double scatterCoef, int* ptNum);
+	//MACGrid mGrid;
 };

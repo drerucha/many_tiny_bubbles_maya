@@ -31,6 +31,7 @@
 #include <maya/MGlobal.h>
 #include <sstream>
 #include "mac_grid.h"
+#include "constants.h"
 
 
 extern MString mllPath;
@@ -62,7 +63,7 @@ MTypeId CreateBubbleNode::id( 0x00128 );
 
 
 
-
+MACGrid mGrid;
 
 void* CreateBubbleNode::creator()
 {
@@ -73,6 +74,9 @@ void* CreateBubbleNode::creator()
 MStatus CreateBubbleNode::initialize()
 {
 
+
+	//Constants::setContainerSize(9,5,1);////////////////////////
+	//mGrid.reset();
 	//MFnNumericAttribute defaultContainerSizeX;
 	//MFnNumericAttribute defaultContainerSizeY;
 	//MFnNumericAttribute defaultContainerSizeZ;
@@ -87,30 +91,7 @@ MStatus CreateBubbleNode::initialize()
 	MFnUnitAttribute defaultTime;
 	MFnTypedAttribute defaultGeometry;
 
-	//creating the attribut
-	//CreateBubbleNode::containerSizeX = defaultContainerSizeX.create( "sizex", "sx", MFnNumericData::kInt, 10, &returnStatus );
-	//defaultContainerSizeX.setMax(30.0);
-	//defaultContainerSizeX.setMin(5);
 
-	//CreateBubbleNode::containerSizeY = defaultContainerSizeY.create( "sizey", "sy", MFnNumericData::kInt, 10, &returnStatus );
-	//defaultContainerSizeY.setMax(30.0);
-	//defaultContainerSizeY.setMin(5);
-
-	//CreateBubbleNode::containerSizeZ = defaultContainerSizeZ.create( "sizez", "sz", MFnNumericData::kInt, 10, &returnStatus );
-	//defaultContainerSizeZ.setMax(30.0);
-	//defaultContainerSizeZ.setMin(5);
-
-	//CreateBubbleNode::containerResolutionX = defaultContainerResolutionX.create( "reslx", "rx", MFnNumericData::kInt, 10, &returnStatus );
-	//defaultContainerResolutionX.setMax(30.0);
-	//defaultContainerResolutionX.setMin(5);
-
-	//CreateBubbleNode::containerResolutionY = defaultContainerResolutionY.create( "resly", "ry", MFnNumericData::kInt, 10, &returnStatus );
-	//defaultContainerResolutionY.setMax(30.0);
-	//defaultContainerResolutionY.setMin(5);
-
-	//CreateBubbleNode::containerResolutionZ = defaultContainerResolutionZ.create( "reslz", "rz", MFnNumericData::kInt, 10, &returnStatus );
-	//defaultContainerResolutionZ.setMax(30.0);
-	//defaultContainerResolutionZ.setMin(5);
 
 	CreateBubbleNode::viscosity = defaultViscosity.create( "viscosity", "v", MFnNumericData::kDouble, 1.0, &returnStatus );
 	defaultViscosity.setMax(10.0);
@@ -124,7 +105,7 @@ MStatus CreateBubbleNode::initialize()
 	defaultScatterFreq.setMax(10.0);
 	defaultScatterFreq.setMin(0.1);
 
-	CreateBubbleNode::scatterCoef = defaultScatterCoef.create( "scatercoef", "c", MFnNumericData::kDouble, 1.0, &returnStatus );
+	CreateBubbleNode::scatterCoef = defaultScatterCoef.create( "scatercoef", "c", MFnNumericData::kDouble, 0.8, &returnStatus );
 	defaultScatterCoef.setMax(10.0);
 	defaultScatterCoef.setMin(0.1);
 
@@ -164,6 +145,8 @@ MStatus CreateBubbleNode::initialize()
 	returnStatus = attributeAffects(CreateBubbleNode::scatterCoef, CreateBubbleNode::outputMesh);
 	returnStatus = attributeAffects(CreateBubbleNode::bubbleSize,  CreateBubbleNode::outputMesh);
 
+
+
 	return MS::kSuccess;
 }
 
@@ -187,11 +170,12 @@ MStatus CreateBubbleNode::compute(const MPlug& plug, MDataBlock& data)
 		MDataHandle scatterCoefData = data.inputValue(scatterCoef, &returnStatus );
 		double scatterCoefs = scatterCoefData.asDouble();
 		MDataHandle bubbleSizeData = data.inputValue(bubbleSize, &returnStatus );
-		double bubbleSizes = 0.1;//bubbleSizeData.asDouble();
+		double bubbleSizes = 0.05;// set bubble size
 
+		//currently, this part is called in each frame, but it should be called only when the container size or resolution is changed 
 		double containSizeX,containSizeY,containSizeZ;
-		double resolutionX, resolutionY, resolutionZ;
-		MDoubleArray resolutionArray;
+		int resolutionX, resolutionY, resolutionZ;
+		MIntArray resolutionArray;
 		MGlobal::executeCommand("getAttr fluidShape1.dimensionsW", containSizeX);
 		MGlobal::executeCommand("getAttr fluidShape1.dimensionsH", containSizeY);
 		MGlobal::executeCommand("getAttr fluidShape1.dimensionsD", containSizeZ);
@@ -199,6 +183,13 @@ MStatus CreateBubbleNode::compute(const MPlug& plug, MDataBlock& data)
 		resolutionX = resolutionArray[0];
 		resolutionY = resolutionArray[1];
 		resolutionZ = resolutionArray[2];
+
+		double gridSize = containSizeX / resolutionX; 
+
+
+		Constants::setContainerDim(resolutionX, resolutionY, resolutionZ);//resolution cannot less than 3 
+		Constants::setGridSize(gridSize);
+		Constants::setBubbleRadius(bubbleSizes);
 
 
 
@@ -221,89 +212,134 @@ MStatus CreateBubbleNode::compute(const MPlug& plug, MDataBlock& data)
 
 MStatus CreateBubbleNode::createBubble(const MTime &time, MObject& outData, double &containerSizeX, double &containerSizeY, double &containerSizeZ, double &viscosity, double &density, double &scatterFreq, double &scatterCoef, double &bubbleSize, const MPlug& plug, MDataBlock& block )
 {
+	int bubbleRadiusCount = 5;
+	double bubbleRadiusMin = 0.01;
+	double bubbleRadiusMax = 0.1;
+	double timeStep = 0.1;	
+	double bubbleBreakFreq = 0.1;
+	/////////////////////////////below should be only set once
+	mGrid.setDensity(density);
+	mGrid.setViscosity(viscosity);
+	mGrid.setScatterFreq(scatterFreq);
+	mGrid.setScatterCoef(scatterCoef);
+	mGrid.setBubbleBreakFreq(bubbleBreakFreq);
+	mGrid.setTimeStep(timeStep);//time step
+	mGrid.setBubbleRadius(bubbleRadiusMin, bubbleRadiusMax, bubbleRadiusCount);
+	////////////////////////////////////////////////
+
+
 	int	frame = (int)time.as( MTime::kFilm );
 	if (frame == 0) 
 		frame = 1;
 
 	stringstream ss;
 	string tmp;
-	string particleAttr = "";
 
 
-
-	int exist;
-	MGlobal::executeCommand("particleExists bubbleParticle1;",exist);
-	if(exist)
+	//**delete existing bubbles**//
+	for(int i = 1; i <= bubbleRadiusCount ; ++i)
 	{
-		MGlobal::executeCommand("select -r bubbleParticle1;");
-		MGlobal::executeCommand("doDelete");
+		string particleExist = "particleExists bubbleParticle";
+
+		ss<<i;
+		ss>>tmp;
+		particleExist += tmp + ";";
+		ss.clear();
+
+		char* particleExistChar=(char *)particleExist.c_str();
+		MString strParticleExist = particleExistChar;
+
+		int exist;
+		MGlobal::executeCommand(strParticleExist, exist);
+		if(exist)
+		{
+			string deleteParticle = "select -r bubbleParticle";
+			deleteParticle += tmp + ";";
+			char* deleteParticleChar=(char *)deleteParticle.c_str();
+			MString strDeleteParticle = deleteParticleChar;
+
+			MGlobal::executeCommand(strDeleteParticle);
+			MGlobal::executeCommand("doDelete");
+		}
+
 	}
 
 
-	double dt = 0.2;//0.1;
 
-    // Step0: Gather user forces
-	mGrid.generateBubbles();
-	mGrid.updateSources();
-
-	// Step1: Calculate new velocities
-	mGrid.advectVelocity(dt);
-	mGrid.addExternalForces(dt);
-	mGrid.project(dt);
-
-	// Step2: Calculate new temperature
-	mGrid.advectTemperature(dt);
-
-	// Step3: Calculate new density 
-	mGrid.advectDensity(dt);
-	mGrid.advectBubbles(dt);
-
-
-	int pointNum;
-	float* ptPos = getParticlePositions(frame, viscosity, density, scatterFreq, scatterCoef, &pointNum);
-
-	if(pointNum > 0)
-		particleAttr += "particle ";
-	for(int i = 0; i < pointNum ; ++i)
+	mGrid.doSimulation(frame);
+	for(int radiusIndex = 1; radiusIndex <= bubbleRadiusCount ; ++radiusIndex)
 	{
-		particleAttr += "-p ";
+		int pointNum;
+		float* ptPos = getParticlePositions(frame, radiusIndex-1, containerSizeX, containerSizeY, containerSizeZ, viscosity, density, scatterFreq, scatterCoef, &pointNum);
 
-		ss<<ptPos[i * 3];
-		ss>>tmp;
-		particleAttr += tmp + " ";
+		string index = "";
+		ss<<radiusIndex;
+		ss>>index;
 		ss.clear();
+		char* indexChar=(char *)index.c_str();
+		MString strIndex = indexChar;
+
+		string particleAttr = "";
+		if(pointNum > 0)
+			particleAttr += "particle ";
+		for(int i = 0; i < pointNum ; ++i)
+		{
+			particleAttr += "-p ";
+
+			ss<<ptPos[i * 3];
+			ss>>tmp;
+			particleAttr += tmp + " ";
+			ss.clear();
 			
-		ss<<ptPos[i * 3 + 1];
-		ss>>tmp;
-		particleAttr += tmp + " ";
-		ss.clear();
+			ss<<ptPos[i * 3 + 1];
+			ss>>tmp;
+			particleAttr += tmp + " ";
+			ss.clear();
 				
-		ss<<ptPos[i * 3 + 2];
-		ss>>tmp;
-		particleAttr += tmp + " ";
-		ss.clear();
-	}
-	particleAttr += "-c 1 -n bubbleParticle1";
+			ss<<ptPos[i * 3 + 2];
+			ss>>tmp;
+			particleAttr += tmp + " ";
+			ss.clear();
+		}
+		particleAttr += "-c 1 -n bubbleParticle";
 
-	char* particleAttrChar=(char *)particleAttr.c_str();
-	MString strparticleAttr = particleAttrChar;
-	MGlobal::executeCommand(strparticleAttr);//create particles
-	MGlobal::executeCommand("setAttr bubbleParticle1Shape.particleRenderType 4");//render particle to sphere
+		char* particleAttrChar=(char *)particleAttr.c_str();
+		MString strparticleAttr = particleAttrChar;
+		MGlobal::executeCommand(strparticleAttr + strIndex);//create particles
+
+		//string particleRenderAttr = "setAttr bubbleParticle";
+		//particleRenderAttr += tmp;
+		//particleRenderAttr += "Shape.particleRenderType 4";
+		//char* particleRenderAttrChar=(char *)particleRenderAttr.c_str();
+		//MString strParticleRenderAttr = particleRenderAttrChar;
+		MGlobal::executeCommand("setAttr bubbleParticle" + strIndex + "Shape.particleRenderType 4");//render particle to sphere
+
+		//MGlobal::executeCommand("setAttr bubbleParticle" + 1 + "Shape.particleRenderType 4");//render particle to sphere
 	
-	string enableRadiusSet = (string)"addAttr -is true -ln radius -at " +'\"' + (string)"float" +'\"' + (string)" -min 0 -max 10 -dv 0.5 bubbleParticle1Shape";
-	char* enableRadiusSetChar=(char *)enableRadiusSet.c_str();
-	MString strEnableRadiusSet = enableRadiusSetChar;
-	MGlobal::executeCommand(strEnableRadiusSet);
+		string enableRadiusSet = (string)"addAttr -is true -ln radius -at " +'\"' + (string)"float" +'\"' + (string)" -min 0 -max 10 -dv 0.5 bubbleParticle" + index + "Shape";
+		char* enableRadiusSetChar=(char *)enableRadiusSet.c_str();
+		MString strEnableRadiusSet = enableRadiusSetChar;
+		MGlobal::executeCommand(strEnableRadiusSet);
+	}
 
 	//**set bubble size**//
-	string bSize;
-	ss<<bubbleSize;
-	ss>>bSize;
-	ss.clear();
-	char* bSizeChar=(char *)bSize.c_str();
-	MString strBSize = bSizeChar;
-	MGlobal::executeCommand("setAttr bubbleParticle1Shape.radius " + strBSize);
+	for(int i = 1; i <= bubbleRadiusCount ; ++i)
+	{
+		ss<<i;
+		ss>>tmp;
+		ss.clear();
 
+		char* particleGroupCountChar=(char *)tmp.c_str();
+		MString strParticleGroupCountChar = particleGroupCountChar;
+
+		string bSize;
+		ss<< mGrid.getBubbleRadius(i-1);
+		ss>> bSize;
+		ss.clear();
+		char* bSizeChar=(char *)bSize.c_str();
+		MString strBSize = bSizeChar;
+		MGlobal::executeCommand("setAttr bubbleParticle"+ strParticleGroupCountChar +"Shape.radius " + strBSize);
+	}
 
 	//**dummy cube mesh**//
 	MFnMesh	meshFS;
@@ -342,120 +378,21 @@ MStatus CreateBubbleNode::createBubble(const MTime &time, MObject& outData, doub
 
 
 
-float* CreateBubbleNode::getParticlePositions(int frame, double viscosity, double density, double scatterFreq, double scatterCoef, int* ptNum)
+float* CreateBubbleNode::getParticlePositions(int frame, int radiusIndex, double containerSizeX, double containerSizeY, double containerSizeZ, double viscosity, double density, double scatterFreq, double scatterCoef, int* ptNum)
 {
 
 	int size;
-	float* postest =  mGrid.getBubblePosition(&size);
+	float* postest =  mGrid.getBubblePosition(radiusIndex, &size);// index
 	float* pos = new float[size * 3];
 	for(int i = 0 ; i < size ; ++i)
 	{
-		pos[i * 3]     = postest[i * 3];
+		pos[i * 3]     = postest[i * 3] - containerSizeX / 2.0f;
 		pos[i * 3 + 1] = postest[i * 3 + 1];
-		pos[i * 3 + 2] = postest[i * 3 + 2];
+		pos[i * 3 + 2] = postest[i * 3 + 2] - containerSizeZ / 2.0f;
 	}
 	*ptNum = size;
 
-	//float* pos = new float[frame * 3];
-	//for(int i = 0 ; i < frame ; ++i)
-	//{
-	//	pos[i * 3] = viscosity * (frame / 1000 + 1) * cos(2 * 3.1415926 / (float)frame * i);
-	//	pos[i * 3 + 1] = 0;
-	//	pos[i * 3 + 2] = viscosity * (frame / 1000 + 1) * sin(2 * 3.1415926 / (float)frame * i);
-	//}
-
-	//*ptNum = frame;
 	return pos;
 }
 
 
-//MStatus LSystemNode::computeMesh( const MPlug& plug, MDataBlock& block )
-////
-////	Description:
-////
-////		To illustrate a custom use of the arrayMapper node, we'll define this
-////	alternative compute that will map particles to mesh vertex positions. If
-////	array lengths do not match, we'll wrap around the arrays.
-////
-////	How to use:
-////
-////		1) Create a poly surface.
-////		2) connectAttr polyShape1.outMesh particleAttr1.computeNode
-////		3) connectAttr particleShape1.count particleAttr1.particleCount
-////		4) connectAttr particleAttr1.outPosition particleShape1.rampPosition (*)
-////
-////		* You may choose to drive any vector based per particle attribute.
-////		  rampPosition was selected here as an example.
-////
-//{
-//	MStatus status = MS::kSuccess;
-//
-//	// Verify that computeNode has a mesh connected to computeNode
-//	//
-//	MPlug compPlug( thisMObject(), computeNode );
-//	MPlugArray conns;
-//	compPlug.connectedTo( conns, true, false, &status );
-//	if( conns.length() <= 0 )
-//	{
-//		return MS::kFailure;
-//	}
-//	MPlug conn = conns[0];
-//	MObject compNode = conn.node();
-//	MFnMesh meshFn( compNode, &status );
-//	if( status != MS::kSuccess )
-//	{
-//		return MS::kFailure;
-//	}
-//
-//	// Retrieve the mesh vertices
-//	//
-//	MPointArray points;
-//	meshFn.getPoints( points );
-//	unsigned int nPoints = points.length();
-//
-//	// Retrieve the current particle count.
-//	//
-//	// NOTE: Due to the order in which the particle system requests
-//	// various pieces of data, some attributes are requested prior
-//	// to the actual emission of particles (eg. rampPosition), whereas
-//	// other attributes are requested after particles have been emitted.
-//	//
-//	// If the driven PP attribute on the particleShape is requested prior
-//	// to the emission of particles, this compute() method will be called
-//	// before any particles have been emitted. As a result, the effect
-//	// will be lagged by one frame.
-//	//
-//	unsigned int nParticles = 0;
-//	int nSignedPart = block.inputValue( particleCount ).asInt();
-//	if( nSignedPart > 0 )
-//	{
-//		nParticles = nSignedPart;
-//	}
-//
-//	// Get pointer to destination attribute: outPositionPP
-//	//
-//	MFnVectorArrayData dataVectorArrayFn;
-//	MVectorArray outPosArray;
-//	MObject posD = block.outputValue( outPositionPP ).data();
-//	//const char* typeStr = posD.apiTypeStr();
-//	status = dataVectorArrayFn.setObject( posD );
-//	if( status == MS::kSuccess )
-//	{
-//		outPosArray = dataVectorArrayFn.array();
-//	}
-//
-//	outPosArray.setLength( nParticles );
-//	for( unsigned int i = 0; i < nParticles; i++ )
-//	{
-//		unsigned int index = i;
-//		if( nParticles > nPoints )
-//		{
-//			index = i % nPoints;
-//		}
-//		MPoint point = points[index];
-//		MVector pos( point.x, point.y, point.z );
-//		outPosArray[i] = pos;
-//	}
-//	dataVectorArrayFn.set( outPosArray );
-//	return MS::kSuccess;
-//}
