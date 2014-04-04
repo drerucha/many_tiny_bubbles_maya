@@ -4,6 +4,7 @@
 GridData::GridData() :
    mDfltValue(0.0), mMax(0.0,0.0,0.0)
 {
+
 }
 
 GridData::GridData(const GridData& orig) :

@@ -3,8 +3,17 @@
 #include <maya/MSyntax.h>
 #include <maya/MArgDatabase.h>
 #include <maya/MGlobal.h>
+#include <maya/MSelectionList.h>//new
+#include <maya/MDagPath.h>//new
+#include <maya/MFnMesh.h>//new
+#include <maya/MFloatPointArray.h>//new
+#include <maya/MItMeshPolygon.h>//new
+#include <maya/MPointArray.h>//new
+#include <maya/MItSelectionList.h>//new
 #include <list>
 #include <sstream>
+#include "constants.h"
+#include <vector>
 
 using namespace std;
 CreateBubbleCmd::CreateBubbleCmd() : MPxCommand()
@@ -123,7 +132,7 @@ MStatus CreateBubbleCmd::doIt( const MArgList& args )
 #pragma endregion
 
 	containerTransX = 0.0f;
-	containerTransY = (double)containerSizeY / 2.0f;
+	containerTransY = (double)containerSizeX * containerResolutionY / 2.0f;
 	containerTransZ = 0.0f;
 
 
@@ -149,17 +158,17 @@ MStatus CreateBubbleCmd::doIt( const MArgList& args )
 	container += tmp + " ";
 	ss.clear();
 
-	ss<<containerSizeX;
+	ss<<containerSizeX * containerResolutionX;
 	ss>>tmp;
 	container += tmp + " ";
 	ss.clear();
 
-	ss<<containerSizeY;
+	ss<<containerSizeX * containerResolutionY;
 	ss>>tmp;
 	container += tmp + " ";
 	ss.clear();
 
-	ss<<containerSizeZ;
+	ss<<containerSizeX * containerResolutionZ;
 	ss>>tmp;
 	container += tmp + " ";
 	ss.clear();
@@ -185,8 +194,8 @@ MStatus CreateBubbleCmd::doIt( const MArgList& args )
 	MString strContainerTran = containerTranChar;
 #pragma endregion
 
-	MGlobal::executeCommand("create3DFluid " + strContainer);//the first three parameters are for resolution, the last three are for size
-	MGlobal::executeCommand("move -r " + strContainerTran);
+	//MGlobal::executeCommand("create3DFluid " + strContainer);//the first three parameters are for resolution, the last three are for size
+	//MGlobal::executeCommand("move -r " + strContainerTran);
 
 	//MGlobal::executeCommand("setAttr fluidShape1.surfaceRender 1");//暫時先不用
 	//MGlobal::executeCommand("setAttr fluidShape1.softSurface 1");
@@ -215,7 +224,106 @@ MStatus CreateBubbleCmd::doIt( const MArgList& args )
 
 	//MFnParticleSystem
 
+	//MGlobal::executeCommand("createNode transform -n Bubble1");
+	//MGlobal::executeCommand("createNode mesh -n BubbleShape1 -p Bubble1");
+	//MGlobal::executeCommand("sets -add initialShadingGroup BubbleShape1");
+	//MGlobal::executeCommand("createNode CreateBubbleNode -n CreateBubbleNode1");
+	//MGlobal::executeCommand("connectAttr time1.outTime CreateBubbleNode1.time");
+	//MGlobal::executeCommand("connectAttr CreateBubbleNode1.outputMesh BubbleShape1.inMesh");
 
+	int a = 0;
+	///below are test
+
+	// create a selection list to convert string to DAGPathObject
+	MSelectionList selList;
+	//MGlobal::getSelectionListByName("pSphere1", selList);// pSphere1  pCube1
+	MDagPath dagPath ;//= MObject();
+	MGlobal::getActiveSelectionList( selList );
+	selList.getDagPath(0, dagPath);
+
+
+	//// if the dag path object is a transform, get the shape
+	bool foundShape = true;
+	if (dagPath.apiType() == MFn::kTransform)
+	{
+		MStatus stat = dagPath.extendToShape();
+		if (stat != MStatus::kSuccess)
+			foundShape = false;
+	}
+
+	//// create a mesh function object if we have a shape and the node is compatible 
+	if (foundShape && dagPath.hasFn(MFn::kMesh))
+	{
+		MFnMesh pMeshFn = MFnMesh(dagPath);
+		MFloatPointArray points; //或者使用MPointArray
+		pMeshFn.getPoints(points, MSpace::kWorld); // or use MSpace::kObject
+
+		MIntArray triangleCounts;
+		MIntArray triangleVertices;
+		pMeshFn.getTriangles(triangleCounts, triangleVertices);
+		int count1 = triangleCounts.length();
+		int count2 = triangleVertices.length();
+
+
+		//int* pointArray;
+		//triangleVertices.get(pointArray);
+		std::vector<int> intArray;
+		intArray.resize(triangleVertices.length());
+		triangleVertices.get(&intArray[0]);
+
+
+		for(int i = 0; i < triangleVertices.length(); i+=3)
+		{
+			string faceList = "Face list #";		
+			ss<< i/3 + 1 ;
+			ss>>tmp;
+			faceList += tmp + " =(";
+			ss.clear();
+
+			ss<< intArray[i] ;
+			ss>>tmp;
+			faceList += tmp + ",";
+			ss.clear();
+
+			ss<< intArray[i+1] ;
+			ss>>tmp;
+			faceList += tmp + ",";
+			ss.clear();
+
+			ss<< intArray[i+2] ;
+			ss>>tmp;
+			faceList += tmp + ");";
+			ss.clear();
+
+			char* faceListChar=(char *)faceList.c_str();
+			MString strfaceList = faceListChar;
+			MGlobal::displayInfo(strfaceList);
+		}
+
+		int pointCount = points.length();
+		for (int i = 0; i < points.length(); i++)
+		{
+			string vertexPosition = "Object Vertex Position (x,y,z) = (";		
+			ss<<points[i].x;
+			ss>>tmp;
+			vertexPosition += tmp + ", ";
+			ss.clear();
+			
+			ss<<points[i].y;
+			ss>>tmp;
+			vertexPosition += tmp + ", ";
+			ss.clear();
+				
+			ss<<points[i].z;
+			ss>>tmp;
+			vertexPosition += tmp + ") ";
+			ss.clear();
+		
+			char* vertexPositionChar=(char *)vertexPosition.c_str();
+			MString strvertexPosition = vertexPositionChar;
+			MGlobal::displayInfo(strvertexPosition);
+		}
+	}
 
     return MStatus::kSuccess;
 }

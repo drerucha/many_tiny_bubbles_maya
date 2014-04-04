@@ -11,8 +11,10 @@
 #undef max
 #undef min
 #include <fstream>
+#include <ctime>
 
 
+#define PI 3.1415926 
 // Globals:
 MACGrid target;
 
@@ -40,10 +42,18 @@ bool MACGrid::theDisplayVel = false;
 #define UNIT_Y vec3( 0.0f, 1.0f, 0.0f )
 #define UNIT_Z vec3( 0.0f, 0.0f, 1.0f )
 
-const double FLUID_DENSITY = 1.0f;
+double FLUID_DENSITY = 1.0f;
 const double INITIAL_TEMPERATURE = 0.0f;
 const double PARTICLE_MASS = 1.0f;
-const double FLUID_VISCOSITY = 1.5f;
+double FLUID_VISCOSITY = 1.5f;
+double SCATTER_FREQUENCY = 1.0f;
+double SCATTER_COEFFICIENT = 0.5f;
+double BUBBLE_BREAK_FREQ = 0.5f;
+double TIME_STEP = 0.1;
+int currentFrame = 0;
+
+
+
 
 MACGrid::MACGrid()
 {
@@ -52,6 +62,9 @@ MACGrid::MACGrid()
 
 MACGrid::MACGrid(const MACGrid& orig)
 {
+	containerSize[0] = 10;
+	containerSize[1] = 10;
+	containerSize[2] = 1;
    mU = orig.mU;
    mV = orig.mV;
    mW = orig.mW;
@@ -76,6 +89,8 @@ MACGrid& MACGrid::operator=(const MACGrid& orig)
 	mConfForceX = orig.mConfForceX;
 	mConfForceY = orig.mConfForceY;
 	mConfForceZ = orig.mConfForceZ;
+	mFractionField = orig.mFractionField;
+	mScatterOdd = orig.mScatterOdd;
 
 	//bubbleData = 
 
@@ -98,8 +113,13 @@ void MACGrid::reset()
 	mConfForceX.initialize();
 	mConfForceY.initialize();
 	mConfForceZ.initialize();
+	mFractionField.initialize(1.0f); // set default fraction field 
+	mScatterOdd.initialize();
+	srand(time(NULL));
+	setUpAMatrix();
+	bubblePosList.clear();
+	bubbleVelList.clear();
 
-   setUpAMatrix();
 }
 
 void MACGrid::initialize()
@@ -111,43 +131,430 @@ void MACGrid::updateSources()
 {
     // TODO: set initial values for density, temperature, and velocity
 
-	//mP( 0, 0, 0 ) = 1.0;
-	mT( 4, 1 ,0 ) = 280.0f;
-	mD( 4, 1, 0 ) = 1.0f;
+	mFractionField.initialize(1.0f); // set default fraction field 
+
+	mT(theDim[MACGrid::X] * theCellSize / 2.0f, theCellSize, theDim[MACGrid::Z] * theCellSize / 2.0f) = 280.0f;
+	mD(theDim[MACGrid::X] * theCellSize / 2.0f, theCellSize, theDim[MACGrid::Z] * theCellSize / 2.0f) = 1.0f;
 	//mU(0, 0, 0) = 1.0;
 	//mV( 4, 1, 0 ) = 1.0f;
 	//mV( 4, 8, 0 ) = -1.0f;
 
-	//mW(0, 0, 0) = 1.0;
-
-	//mU( 1, 0, 0 ) = 1.0f;
-
-
-	//mD( 0, 0, 0 ) = 1.0;
-	//mD( 1, 0, 0 ) = 2;
-
-	//mD( 0, 1, 0 ) = 3;
-	//mD( 1, 1, 0 ) = 4;
-
-	//mD( 0, 2, 0 ) = 5;
-	//mD( 1, 2, 0 ) = 6;
-
-	//mD( 0, 3, 0 ) = 7;
-	//mD( 1, 3, 0 ) = 8;
-
-
-	//mD( 1, 4, 0 ) = 14;
-	//mD( 2, 4, 0 ) = 15;
 }
+
+
+////////////////New added function////////////////////
 
 void MACGrid::generateBubbles()
 {
-	vec3 position(theDim[MACGrid::X] * theCellSize / 2.0f, theCellSize, theCellSize / 2.0f);
+	//bubblePos.push_back(vec3(5,1,5));
+	//bubbleVel.push_back(vec3(0,1,0));
 
-	//bubbleData.m_positions.push_back(position);
-	bubblePos.push_back(position);
+
+
+	for(int k = 0; k < bubbleRadiusList.size(); k++)
+	{
+		bubblePos bubblePosition;
+		bubbleVel bubbleVelocity;
+
+		for(int i = 0; i < 180 ; i += 100)
+		{
+			for(int j = 0; j < 360 ; j += 100)
+			{
+				double ran_num = (rand()%10)+1; //theoretically, the bigger bubble is less occured
+				if(ran_num > 5)
+				{
+					double theta = i / 180.0f * PI;
+					double phi = j / 180.0f * PI;
+
+					vec3 center(theDim[MACGrid::X] * theCellSize / 2.0f, theCellSize, theDim[MACGrid::Z] * theCellSize / 2.0f);
+					double radius = 0.1f;
+					double x = theDim[MACGrid::X] * theCellSize / 2.0f + radius * sin(theta) * cos(phi);
+					double y = theCellSize + radius * cos(theta);
+					double z = theDim[MACGrid::Z] * theCellSize / 2.0f + radius * sin(theta) * sin(phi);
+
+					
+					if(bubblePosList.size() == bubbleRadiusList.size())
+						bubblePosList[k].push_back(vec3(x, y, z));
+					else
+						bubblePosition.push_back(vec3(x, y, z));
+
+					if(bubbleVelList.size() == bubbleRadiusList.size())
+						bubbleVelList[k].push_back(vec3(0,1,0));
+					else
+						bubbleVelocity.push_back(vec3(0,1,0));
+
+				}
+			}
+		}
+		if(bubblePosList.size() != bubbleRadiusList.size())
+			bubblePosList.push_back(bubblePosition);
+		if(bubbleVelList.size() != bubbleRadiusList.size())
+			bubbleVelList.push_back(bubbleVelocity);
+	}
+
 
 }
+
+void MACGrid::computeScatterOdd()
+{
+	FOR_EACH_CELL
+	{
+
+	}
+}
+
+void MACGrid::computeFractionField()
+{
+	int j = 0;
+	for(std::vector<bubblePos>::iterator iterRadius = bubblePosList.begin(); iterRadius != bubblePosList.end(); ++iterRadius, ++j)
+	{	
+		int i = 0;
+		for(std::vector<vec3>::iterator iter = bubblePosList[j].begin(); /*i < bubblePosList[j].size()*/ iter != bubblePosList[j].end(); ++iter, ++i)
+		{
+			vec3 position = bubblePosList[j][i];
+			int position_grid_X = (int)(position[0] / theCellSize);
+			int position_grid_Y = (int)(position[1] / theCellSize);
+			int position_grid_Z = (int)(position[2] / theCellSize);
+
+			mFractionField(position_grid_X, position_grid_Y, position_grid_Z) -= 4.0f / 3.0f * PI * pow(bubbleRadiusList[j] / theCellSize, 3);
+		}
+		int a = 0;
+	}
+}
+
+void MACGrid::advectBubbles( double dt )
+{
+	int j = 0;
+	for(std::vector<bubblePos>::iterator iterRadius = bubblePosList.begin(); iterRadius != bubblePosList.end(); ++iterRadius, ++j)
+	{
+		int i = 0;
+		for(std::vector<vec3>::iterator iterPos = bubblePosList[j].begin(), iterVel = bubbleVelList[j].begin(); iterPos != bubblePosList[j].end(); ++i)
+		{
+
+
+			vec3 position = bubblePosList[j][i];
+			int position_grid_X = (int)(position[0] / theCellSize);
+			int position_grid_Y = (int)(position[1] / theCellSize);
+			int position_grid_Z = (int)(position[2] / theCellSize);
+
+			//vec3 velocity = getVelocity(position);
+			//vec3 velocity(0,5,0);
+
+			//bubbleVel[i] += vec3(0,1,0);
+			//vec3 velocity = bubbleVel[i];
+			//velocity = vec3(0,1,0);
+			vec3 velocity = vec3(0, bubbleVelList[j][i].Length(), 0);
+
+
+			double ran_num = (rand()%100) / 100.0f;
+			//SCATTER_FREQUENCY = 0.1;
+			double velocityMag = velocity.Length(); 
+			double fractionField = mFractionField(position_grid_X, position_grid_Y, position_grid_Z);
+			double scatterOdd = SCATTER_FREQUENCY * (1 - fractionField) * velocityMag * velocityMag;//between 0~1 
+			if(scatterOdd > ran_num) // alter the direction
+			{
+				//SCATTER_COEFFICIENT = 0.9;
+				double x = 2 * ran_num * SCATTER_COEFFICIENT - SCATTER_COEFFICIENT + 1;
+				double y = 2 * ran_num + SCATTER_COEFFICIENT - 1;
+				double cosTheta;
+				double theta;
+				if(x == 0)
+					theta = PI / 2.0f;
+				else
+				{
+					cosTheta = y / x;
+					theta = acos(cosTheta);
+				}
+
+				//if(x >=0 && y >= 0)
+					//theta = acos(cosTheta);
+				//else if(x < 0 && y >= 0)
+				//	theta = acos(cosTheta);
+				//else if(x >= 0 && y < 0)
+				//	theta = acos(cosTheta) + PI;
+				//else if(x < 0 && y < 0)
+				//	theta = acos(cosTheta) + PI;
+ 				if(theta != 0)
+				{
+					//double ran_num2 = (((rand()%200) + 1) - 100) / 100.0f;
+					double rotateAxisX = 1;
+					double rotateAxisY = 0;
+					double rotateAxisZ = 0;
+					if(velocity[2] != 0)
+					{
+						rotateAxisX = (((rand()%200) + 1) - 100) / 100.0f;
+						rotateAxisY = (((rand()%200) + 1) - 100) / 100.0f;
+						while(rotateAxisX == 0 && rotateAxisY == 0)
+						{
+							rotateAxisX = (((rand()%200) + 1) - 100) / 100.0f;
+							rotateAxisY = (((rand()%200) + 1) - 100) / 100.0f;
+						}
+
+						rotateAxisZ = -(rotateAxisX * velocity[0] + rotateAxisY * velocity[1]) / velocity[2];
+					}
+					else if(velocity[1] != 0)
+					{
+						rotateAxisX = (((rand()%200) + 1) - 100) / 100.0f;
+						rotateAxisZ = (((rand()%200) + 1) - 100) / 100.0f;
+						while(rotateAxisX == 0 && rotateAxisZ == 0)
+						{
+							rotateAxisX = (((rand()%200) + 1) - 100) / 100.0f;
+							rotateAxisZ = (((rand()%200) + 1) - 100) / 100.0f;
+						}
+						rotateAxisY = -(rotateAxisX * velocity[0] + rotateAxisZ * velocity[2]) / velocity[1];
+					}
+					else if(velocity[0] != 0)
+					{
+						rotateAxisY = (((rand()%200) + 1) - 100) / 100.0f;
+						rotateAxisZ = (((rand()%200) + 1) - 100) / 100.0f;
+						while(rotateAxisY == 0 && rotateAxisZ == 0)
+						{
+							rotateAxisY = (((rand()%200) + 1) - 100) / 100.0f;
+							rotateAxisZ = (((rand()%200) + 1) - 100) / 100.0f;
+						}
+						rotateAxisX = -(rotateAxisY * velocity[1] + rotateAxisZ * velocity[2]) / velocity[0];
+					}
+					double length = sqrt(rotateAxisX * rotateAxisX + rotateAxisY * rotateAxisY + rotateAxisZ * rotateAxisZ);
+					rotateAxisX = rotateAxisX / length;
+					rotateAxisY = rotateAxisY / length;
+					rotateAxisZ = rotateAxisZ / length;
+
+					double ss = cos(theta / 2.0f); 
+					double xx = sin(theta / 2.0f) * rotateAxisX;
+					double yy = sin(theta / 2.0f) * rotateAxisY;
+					double zz = sin(theta / 2.0f) * rotateAxisZ;
+
+					double newX = (1 - 2*yy*yy - 2*zz*zz)*velocity[0] + (2*xx*yy - 2*ss*zz)*velocity[1] + (2*xx*zz + 2*ss*yy)*velocity[2];
+					double newY = (2*xx*yy + 2*ss*zz)*velocity[0] + (1 - 2*xx*xx - 2*zz*zz)*velocity[1] + (2*yy*zz - 2*ss*xx)*velocity[2];
+					double newZ = (2*xx*zz - 2*ss*yy)*velocity[0] + (2*yy*zz + 2*ss*xx)*velocity[1] + (1 - 2*xx*xx - 2*yy*yy)*velocity[2];
+					velocity[0] = newX;
+					velocity[1] = newY;
+					velocity[2] = newZ;
+				}
+
+			}
+
+			bubbleVelList[j][i] = velocity + vec3(0, 1, 0) * (1 - ((rand()%10) + 1) / 100.0f);
+
+			//add the terminal speed effect
+			if(bubbleVelList[j][i].Length() > 5)//need to add the bubble radius parameter  5 is the terminal speed
+			{
+				bubbleVelList[j][i] = bubbleVelList[j][i] / bubbleVelList[j][i].Length() * 5;
+			}
+
+			position += dt * bubbleVelList[j][i];
+
+
+
+			//Particle goes outside the container
+			if(position[0] < 0 || position[0] > theDim[MACGrid::X] * theCellSize
+			|| position[1] < 0 || position[1] >= theDim[MACGrid::Y] * theCellSize - 0.001
+			|| position[2] < 0 || position[2] > theDim[MACGrid::Z] * theCellSize)
+			{
+				if(iterPos == bubblePosList[j].begin())
+				{
+					vec3 testA = *iterPos;
+					bubblePosList[j].erase(iterPos);
+					iterPos = bubblePosList[j].begin();
+					vec3 testB = *iterPos;
+					bubbleVelList[j].erase(iterVel);
+					iterVel = bubbleVelList[j].begin();
+					i--;
+				}
+				else
+				{
+					--(iterPos = bubblePosList[j].erase(iterPos));
+					--(iterVel = bubbleVelList[j].erase(iterVel));
+					i--;
+					++iterPos; 
+					++iterVel;
+				}
+			}
+			else
+			{
+				bubblePosList[j][i] = position;
+
+
+				//BUBBLE BREAK
+				if(BUBBLE_BREAK_FREQ > (rand()%100) / 100.0f && j > 0)
+				{
+
+					vec3 newPosition1 = (position + vec3(bubbleRadiusList[j], 0, 0));
+					vec3 newPosition2 = (position - vec3(bubbleRadiusList[j], 0, 0));
+					if(newPosition1[0] < 0 || newPosition1[0] > theDim[MACGrid::X] * theCellSize)
+						newPosition1 = position;
+					if(newPosition2[0] < 0 || newPosition2[0] > theDim[MACGrid::X] * theCellSize)
+						newPosition2 = position;	
+
+					bubblePosList[j-1].push_back(newPosition1);
+					bubbleVelList[j-1].push_back(bubbleVelList[j][i]);
+					bubblePosList[j-1].push_back(newPosition2);
+					bubbleVelList[j-1].push_back(bubbleVelList[j][i]);
+
+
+					if(iterPos == bubblePosList[j].begin())
+					{
+						vec3 testA = *iterPos;
+						bubblePosList[j].erase(iterPos);
+						iterPos = bubblePosList[j].begin();
+						vec3 testB = *iterPos;
+						bubbleVelList[j].erase(iterVel);
+						iterVel = bubbleVelList[j].begin();
+						i--;
+					}
+					else
+					{
+						--(iterPos = bubblePosList[j].erase(iterPos));
+						--(iterVel = bubbleVelList[j].erase(iterVel));
+						i--;
+						++iterPos; 
+						++iterVel;
+					}
+				}
+				else
+				{
+					++iterPos; 
+					++iterVel;
+				}
+			}
+
+		}
+	}
+}
+
+void MACGrid::doSimulation(int frame)
+{
+	if(frame < currentFrame)
+	{
+		//RESET
+		reset();
+		currentFrame = 0;
+	}
+
+	//Do simulation
+	for(int i = 0; i < frame - currentFrame; i++)
+	{
+		// Step0: Gather user forces
+		generateBubbles();
+		updateSources();
+
+		// Step1: Calculate new velocities
+		//advectVelocity(TIME_STEP);
+		//addExternalForces(TIME_STEP);
+		//project(TIME_STEP);
+
+		// Step2: Calculate new temperature
+		//advectTemperature(TIME_STEP);
+
+		// Step3: Calculate new density 
+		//advectDensity(TIME_STEP);
+		computeFractionField();
+		advectBubbles(TIME_STEP);
+	}
+
+	currentFrame = frame;
+}
+
+float* MACGrid::getBubblePosition(int index, int* size)
+{
+	float* bubblePositionArray = new float[bubblePosList[index].size() * 3];
+	*size = bubblePosList[index].size();
+	for(int i = 0; i < bubblePosList[index].size(); i++)
+	{
+		vec3 position = bubblePosList[index][i];
+		bubblePositionArray[i * 3] = position[0];
+		bubblePositionArray[i * 3 + 1] = position[1];
+		bubblePositionArray[i * 3 + 2] = position[2];
+	}
+
+	return bubblePositionArray;
+}
+
+void MACGrid::setViscosity(double viscosity)
+{
+	FLUID_VISCOSITY = viscosity;
+}
+
+void MACGrid::setDensity(double density)
+{
+	FLUID_DENSITY = density;
+}
+
+void MACGrid::setScatterFreq(double freq)
+{
+	SCATTER_FREQUENCY = freq;
+}
+
+void MACGrid::setScatterCoef(double coef)
+{
+	SCATTER_COEFFICIENT = coef;
+}
+
+void MACGrid::setSourcePos(std::vector<vec3> pos)
+{
+	sourcePos.clear();
+	sourcePos = pos;
+}
+
+void MACGrid::setTimeStep(double dt)
+{
+	TIME_STEP = dt;
+}
+
+void MACGrid::setBubbleBreakFreq(double freq)
+{
+	BUBBLE_BREAK_FREQ = freq;
+}
+
+void MACGrid::setBubbleRadius(double radiusMin, double radiusMax, int segment)
+{
+	bubbleRadiusList.clear();
+
+	if(radiusMin >radiusMax)
+	{
+		double temp = radiusMin;
+		radiusMin = radiusMax;
+		radiusMax = temp;
+	}
+
+	//if(radiusMin == radiusMax)
+	//	segment = 1;
+
+	segment = 1;
+	while(radiusMax / radiusMin >= 2 )
+	{
+		radiusMax = radiusMax / 2;
+		segment++;
+	}
+
+
+	//if(segment <= 1)
+	//{
+	//	double radius = (radiusMax +radiusMin) / 2.0f;
+	//	bubbleRadiusList.push_back(radius);
+	//}
+	//else
+	//{
+		for(int i = 0; i < segment ; i++)
+		{
+
+			//double radius = radiusMin * pow((radiusMax / radiusMin), (double)i / (segment - 1));
+			double radius = radiusMin * pow(pow(2, 1.0f / 3.0f), i);
+			bubbleRadiusList.push_back(radius);
+		}
+	//}
+}
+
+int MACGrid::getBubbleRadiusCount()
+{
+	return bubbleRadiusList.size();
+}
+
+double MACGrid::getBubbleRadius(int index)
+{
+	return bubbleRadiusList[index];
+}
+
 
 void MACGrid::advectVelocity(double dt)
 {
@@ -313,35 +720,12 @@ void MACGrid::advectDensity( double dt )
 	mD = target.mD;
 }
 
-void MACGrid::advectBubbles( double dt )
-{
-	int i = 0;
-	for(std::vector<vec3>::iterator iter = bubblePos.begin(); iter != bubblePos.end(); ++iter)
-	{
-		vec3 position = bubblePos[i];
-		vec3 velocity = getVelocity(position);
-		position += dt * velocity;
-
-		//particle goes outside the container
-		if(position[0] < 0 || position[0] > theDim[MACGrid::X] * theCellSize
-		|| position[1] < 0 || position[1] > theDim[MACGrid::Y] * theCellSize
-		|| position[2] < 0 || position[2] > theDim[MACGrid::Z] * theCellSize)
-		{
-			bubblePos.erase(iter);
-		}
-		else
-			bubblePos[i] = position;
-
-		i++;
-	}
-}
-
 void MACGrid::computeBouyancy( double dt )
 {
 	// TODO: calculate bouyancy and store in target
 	// TODO: tune alpha and beta parameters
 
-	double alpha = 0.5f;
+	double alpha = 0.1f;
 	double beta = 0.01f;
 	double ambient_temp = 270.0f;
 
@@ -770,51 +1154,36 @@ bool MACGrid::isValidCell(int i, int j, int k)
 
 void MACGrid::setUpAMatrix() {
 
-	FOR_EACH_CELL {
+	//FOR_EACH_CELL {
 
-		int numFluidNeighbors = 0;
-		if (i-1 >= 0) {
-			AMatrix.plusI(i-1,j,k) = -1;
-			numFluidNeighbors++;
-		}
-		if (i+1 < theDim[MACGrid::X]) {
-			AMatrix.plusI(i,j,k) = -1;
-			numFluidNeighbors++;
-		}
-		if (j-1 >= 0) {
-			AMatrix.plusJ(i,j-1,k) = -1;
-			numFluidNeighbors++;
-		}
-		if (j+1 < theDim[MACGrid::Y]) {
-			AMatrix.plusJ(i,j,k) = -1;
-			numFluidNeighbors++;
-		}
-		if (k-1 >= 0) {
-			AMatrix.plusK(i,j,k-1) = -1;
-			numFluidNeighbors++;
-		}
-		if (k+1 < theDim[MACGrid::Z]) {
-			AMatrix.plusK(i,j,k) = -1;
-			numFluidNeighbors++;
-		}
-		// Set the diagonal:
-		AMatrix.diag(i,j,k) = numFluidNeighbors;
-	}
-}
-
-float* MACGrid::getBubblePosition(int* size)
-{
-	float* bubblePositionArray = new float[bubblePos.size() * 3];
-	*size = bubblePos.size();
-	for(int i = 0; i < bubblePos.size(); i++)
-	{
-		vec3 position = bubblePos[i];
-		bubblePositionArray[i * 3] = position[0];
-		bubblePositionArray[i * 3 + 1] = position[1];
-		bubblePositionArray[i * 3 + 2] = position[2];
-	}
-
-	return bubblePositionArray;
+	//	int numFluidNeighbors = 0;
+	//	if (i-1 >= 0) {
+	//		AMatrix.plusI(i-1,j,k) = -1;
+	//		numFluidNeighbors++;
+	//	}
+	//	if (i+1 < theDim[MACGrid::X]) {
+	//		AMatrix.plusI(i,j,k) = -1;
+	//		numFluidNeighbors++;
+	//	}
+	//	if (j-1 >= 0) {
+	//		AMatrix.plusJ(i,j-1,k) = -1;
+	//		numFluidNeighbors++;
+	//	}
+	//	if (j+1 < theDim[MACGrid::Y]) {
+	//		AMatrix.plusJ(i,j,k) = -1;
+	//		numFluidNeighbors++;
+	//	}
+	//	if (k-1 >= 0) {
+	//		AMatrix.plusK(i,j,k-1) = -1;
+	//		numFluidNeighbors++;
+	//	}
+	//	if (k+1 < theDim[MACGrid::Z]) {
+	//		AMatrix.plusK(i,j,k) = -1;
+	//		numFluidNeighbors++;
+	//	}
+	//	// Set the diagonal:
+	//	AMatrix.diag(i,j,k) = numFluidNeighbors;
+	//}
 }
 
 
@@ -952,11 +1321,6 @@ void MACGrid::apply(const GridDataMatrix & matrix, const GridData & vector, Grid
 
 }
 
-
-
-
-/////////////////////////////////////////////////////////////////////
-
 void MACGrid::saveSmoke(const char* fileName) {
 	std::ofstream fileOut(fileName);
 	if (fileOut.is_open()) {
@@ -966,7 +1330,6 @@ void MACGrid::saveSmoke(const char* fileName) {
 		fileOut.close();
 	}
 }
-
 
 
 
